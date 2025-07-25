@@ -14,15 +14,10 @@ restaurant_search_agent = Agent(
     tools=[google_search],
     description="An agent that searches for restaurants and dining experiences in a given destination",
     instruction="""
-    You are a food and dining expert. You will be given a destination and you will search for:
-    - Top-rated restaurants and cafes
-    - Local cuisine specialties
-    - Different dining price ranges
-    - Unique dining experiences
-    Provide a summary of the best dining options with cuisine types and highlights.
-    Only research for restaurants and nothing else.
-
-    Output should only contain the restaurant options, no other text.
+    You are a local restaurant expert. You will be given a destination.
+    Search for top restaurants, local cuisine, and dining experiences in the given destination.
+    Focus on: popular restaurants, local specialties, different price ranges, unique dining experiences.
+    Output only restaurant options with cuisine types and highlights.
     """,
     output_key="restaurant_options",
 )
@@ -34,15 +29,10 @@ activities_search_agent = Agent(
     tools=[google_search],
     description="An agent that searches for activities and attractions in a given destination",
     instruction="""
-    You are a local activities expert. You will be given a destination and you will search for:
-    - Popular tourist attractions
-    - Outdoor activities and adventures
-    - Cultural experiences and museums
-    - Entertainment and nightlife options
-    Provide a summary of the best activities with brief descriptions and recommendations.
-    Only research for activities and nothing else.
-
-    Output should only contain the activity options, no other text.
+    You are a local activities expert. You will be given a destination.
+    Search for activities and attractions in the given destination.
+    Focus on: tourist attractions, outdoor activities, cultural experiences, entertainment options.
+    Output only activity options with brief descriptions.
     """,
     output_key="activity_options",
 )
@@ -71,71 +61,74 @@ def get_weather(city: str) -> dict:
 weather_agent = Agent(
     name="weather_agent",
     model=GEMINI_2_0_FLASH_MODEL,
-    description="Lookup weather in a given city",
-    instruction=(
-        "You are an assistant specialized in looking up weather for a given city"
-    ),
+    description="An agent that looks up weather for a given city",
+    instruction="Look up weather forecast for the given city.",
     tools=[get_weather],
     output_key="weather_forecast"
 )
 
 # Main parallel agent that runs all search agents simultaneously
-information_gathering_agent = ParallelAgent(
-    name="information_gathering_agent",
-    description="A comprehensive system that simultaneously searches for hotels, restaurants, and activities for trip planning",
-    sub_agents=[restaurant_search_agent, activities_search_agent, weather_agent],
+travel_research_agent = ParallelAgent(
+    name="travel_research_agent",
+    description="A comprehensive system that simultaneously searches for weather, restaurants, and activities for trip planning",
+    sub_agents=[weather_agent, restaurant_search_agent, activities_search_agent],
 )
 
 merger_agent = LlmAgent(
      name="merger_agent",
-     model=GEMINI_2_5_FLASH_MODEL,  # Or potentially a more powerful model if needed for synthesis
-     instruction="""You are an AI Assistant responsible for creating a comprehensive travel guide based on gathered information.
+     model=GEMINI_2_5_FLASH_MODEL,
+     instruction="""Create a comprehensive travel guide using the provided information:
 
-Your task is to synthesize the research about restaurants, activities, and weather for a given city into a well-structured travel guide. Use only the information provided in the input summaries below.
+    Restaurants: {restaurant_options}
+    Activities: {activity_options} 
+    Weather: {weather_forecast}
 
-**Input Summaries:**
+    Format:
+    ## Travel Guide
+    ### Weather Overview
+    [Weather summary and planning implications]
 
-*   **Restaurants:**
-    {restaurant_options}
+    ### Recommended Restaurants
+    [List restaurants with cuisine types and highlights]
 
-*   **Activities:**
-    {activity_options} 
+    ### Things to Do
+    [List activities and attractions]
 
-*   **Weather Forecast:**
-    {weather_forecast}
+    ### Daily Planning Suggestions
+    [2-3 activity-dining combinations considering weather]
+    [What to wear and pack based on weather]
 
-**Output Format:**
-
-## Travel Guide
-
-### Weather Overview
-[Summarize the weather forecast and what it means for planning activities]
-
-### Recommended Restaurants
-[List and describe the recommended restaurants, including any notable features, cuisine types, or special recommendations]
-
-### Things to Do
-[Organize and describe the suggested activities, attractions, and entertainment options]
-
-### Daily Planning Suggestions
-[Provide 2-3 suggestions for how to combine the activities and dining options, taking weather into consideration]
-
-Keep the guide practical and focused on helping travelers make the most of their visit. Only include information that was provided in the input summaries.
-""",
-     description="Creates a structured travel guide by combining information about local restaurants, activities, and weather forecasts.",
+    Keep it practical and focused on the provided information only.
+    """,
+    description="Creates a structured travel guide by combining information about local restaurants, activities, and weather forecasts.",
 )
 
-itinerary_pipeline = SequentialAgent(
-    name="itinerary_pipeline",
+travel_planner_pipeline = SequentialAgent(
+    name="travel_planner_pipeline",
     description="A pipeline that creates a travel guide by combining information about local restaurants, activities, and weather forecasts.",
-    sub_agents=[information_gathering_agent, merger_agent]
+    sub_agents=[travel_research_agent, merger_agent]
 )
 
 root_agent = LlmAgent(
     name="root_agent",
     model=GEMINI_2_0_FLASH_MODEL,
-    description="You are a travel planner assistant. You will be given a destination and you will create a travel guide for that destination.",
-    instruction="""You are a travel planner assistant. You will be given a destination and you will create a travel guide for that destination.
+    description="You are a travel planner assistant. You will collect travel details and create a comprehensive travel guide.",
+    instruction="""You are a travel planner assistant. Collect essential information before creating a travel guide.
+
+    Ask for:
+    1. Destination (city/location)
+    2. Number of days to stay
+
+    If user provides both in initial message, proceed directly. Otherwise, ask for missing information.
+
+    Example:
+    User: "Plan a trip to Tokyo"
+    Assistant: "I'd be happy to help plan your trip to Tokyo. How many days are you planning to stay?"
+
+    User: "I want to visit Paris for 5 days"
+    Assistant: [Proceed with travel guide creation]
+
+    Once you have all required information, create a comprehensive travel guide.
     """,
-    sub_agents=[itinerary_pipeline]
+    sub_agents=[travel_planner_pipeline]
 )
