@@ -266,10 +266,10 @@ Test with prompts like:
 
 ## Step 3: Travel Agent
 
-Now let's build a sophisticated multi-agent system that combines parallel processing and sequential workflows.
+Now let's build a sophisticated multi-agent system that combines parallel processing and sequential workflows. We'll break this down into manageable steps.
 
-### Implementation
-Create `travel_agent/agent.py`:
+### Step 3.1: Set up the foundation
+First, create the basic structure and imports in `travel_agent/agent.py`:
 
 ```python
 from google.adk.agents import ParallelAgent, LlmAgent, SequentialAgent
@@ -279,37 +279,12 @@ import requests
 
 GEMINI_2_0_FLASH_MODEL = "gemini-2.0-flash"
 GEMINI_2_5_FLASH_MODEL = "gemini-2.5-flash"
+```
 
-# Restaurant Search Agent - Finds dining options
-restaurant_search_agent = Agent(
-    name="restaurant_search_agent",
-    model=GEMINI_2_0_FLASH_MODEL,
-    tools=[google_search],
-    description="An agent that searches for restaurants and dining experiences in a given destination",
-    instruction="""
-    You are a local restaurant expert. You will be given a destination.
-    Search for top restaurants, local cuisine, and dining experiences in the given destination.
-    Focus on: popular restaurants, local specialties, different price ranges, unique dining experiences.
-    Output only restaurant options with cuisine types and highlights.
-    """,
-    output_key="restaurant_options",
-)
+### Step 3.2: Create the weather tool
+Add the weather function (same as in Step 2):
 
-# Activities Search Agent - Finds things to do
-activities_search_agent = Agent(
-    name="activities_search_agent",
-    model=GEMINI_2_0_FLASH_MODEL,
-    tools=[google_search],
-    description="An agent that searches for activities and attractions in a given destination",
-    instruction="""
-    You are a local activities expert. You will be given a destination.
-    Search for activities and attractions in the given destination.
-    Focus on: tourist attractions, outdoor activities, cultural experiences, entertainment options.
-    Output only activity options with brief descriptions.
-    """,
-    output_key="activity_options",
-)
-
+```python
 def get_weather(city: str) -> dict:
     loc = requests.get(
         "https://geocoding-api.open-meteo.com/v1/search",
@@ -329,7 +304,48 @@ def get_weather(city: str) -> dict:
             f"{day}: high {w['temperature_2m_max'][i]}°C, "
             f"rain {w['precipitation_probability_mean'][i]}%")
     return "\n".join(out)
+```
 
+### Step 3.3: Create specialized agents
+Add the restaurant search agent:
+
+```python
+restaurant_search_agent = Agent(
+    name="restaurant_search_agent",
+    model=GEMINI_2_0_FLASH_MODEL,
+    tools=[google_search],
+    description="An agent that searches for restaurants and dining experiences in a given destination",
+    instruction="""
+    You are a local restaurant expert. You will be given a destination.
+    Search for top restaurants, local cuisine, and dining experiences in the given destination.
+    Focus on: popular restaurants, local specialties, different price ranges, unique dining experiences.
+    Output only restaurant options with cuisine types and highlights.
+    """,
+    output_key="restaurant_options",
+)
+```
+
+Add the activities search agent:
+
+```python
+activities_search_agent = Agent(
+    name="activities_search_agent",
+    model=GEMINI_2_0_FLASH_MODEL,
+    tools=[google_search],
+    description="An agent that searches for activities and attractions in a given destination",
+    instruction="""
+    You are a local activities expert. You will be given a destination.
+    Search for activities and attractions in the given destination.
+    Focus on: tourist attractions, outdoor activities, cultural experiences, entertainment options.
+    Output only activity options with brief descriptions.
+    """,
+    output_key="activity_options",
+)
+```
+
+Add the weather agent:
+
+```python
 weather_agent = Agent(
     name="weather_agent",
     model=GEMINI_2_0_FLASH_MODEL,
@@ -338,14 +354,23 @@ weather_agent = Agent(
     tools=[get_weather],
     output_key="weather_forecast"
 )
+```
 
-# Main parallel agent that runs all search agents simultaneously
+### Step 3.4: Create the parallel agent
+Combine all research agents to run simultaneously:
+
+```python
 travel_research_agent = ParallelAgent(
     name="travel_research_agent",
     description="A comprehensive system that simultaneously searches for weather, restaurants, and activities for trip planning",
     sub_agents=[weather_agent, restaurant_search_agent, activities_search_agent],
 )
+```
 
+### Step 3.5: Create the merger agent
+Add the agent that combines all the research results:
+
+```python
 merger_agent = LlmAgent(
      name="merger_agent",
      model=GEMINI_2_5_FLASH_MODEL,
@@ -374,13 +399,23 @@ merger_agent = LlmAgent(
     """,
     description="Creates a structured travel guide by combining information about local restaurants, activities, and weather forecasts.",
 )
+```
 
+### Step 3.6: Create the pipeline
+Connect the research and merger agents in sequence:
+
+```python
 travel_planner_pipeline = SequentialAgent(
     name="travel_planner_pipeline",
     description="A pipeline that creates a travel guide by combining information about local restaurants, activities, and weather forecasts.",
     sub_agents=[travel_research_agent, merger_agent]
 )
+```
 
+### Step 3.7: Create the root agent
+Add the final agent that handles user interaction:
+
+```python
 root_agent = LlmAgent(
     name="root_agent",
     model=GEMINI_2_0_FLASH_MODEL,
