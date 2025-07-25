@@ -1,4 +1,4 @@
-# ADK Agents Workshop Guide
+# BuildWithAI Workshop- AI Agents with ADK
 
 Welcome to the Build with AI - Hands-On workshop! In this guide, you'll learn how to build agents using the Google Agent Development Kit (ADK) through three progressive examples: a simple Hello World agent, a tool-calling weather agent, and a sophisticated multi-agent travel planner.
 
