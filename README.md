@@ -599,7 +599,7 @@ Test with prompts like:
 - [ADK Documentation](https://google.github.io/adk-docs/get-started/quickstart/)
 - [Google AI Studio](https://aistudio.google.com/app/apikey)
 - [ADK GitHub](https://github.com/google/adk-python)
-- [Agent Development Best Practices](https://google.github.io/adk-docs/guides/best-practices/)
+- [ADK Python API Reference](https://google.github.io/adk-docs/api-reference/python/index.html)
 
 ---
 
